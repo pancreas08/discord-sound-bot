@@ -65,7 +65,7 @@ client.once("ready", () => {
   
   // IMPORTANTE: Debes cambiar 'TU_ID_DE_SERVIDOR' por el ID del servidor donde está el bot.
   // CLIC DERECHO EN EL NOMBRE DEL SERVIDOR -> Copiar ID.
-  const GUILD_ID_TO_TROL = "TU_ID_DE_SERVIDOR"; 
+  const GUILD_ID_TO_TROL = "461899811495477250"; 
 
   const job = new CronJob(
     '*/15 * * * *', // Ejecutar cada 15 minutos
