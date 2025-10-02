@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits } = require("discord.js");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
 const { CronJob } = require("cron");
 const express = require('express');
+const path = require('path'); // ⭐️ AGREGADO: Módulo para rutas absolutas
 
 // ⭐️ ID DEL SERVIDOR: Lista de IDs para el Cron Job y el comando global
 const GUILD_IDS_TO_TROL = ["461899811495477250", "939962120446017536"];
@@ -26,9 +27,9 @@ async function playSoundRandom(guild) {
     
     // ⭐️ FILTRAR canales de voz que están permitidos Y que tienen miembros
     const availableChannels = guild.channels.cache.filter(ch => 
-        ch.type === 2 && // Debe ser un canal de voz
-        allowedChannels.includes(ch.name) && // Debe estar en la lista permitida
-        ch.members.size > 0 // SOLO SI TIENE MIEMBROS CONECTADOS
+        ch.type === 2 && 
+        allowedChannels.includes(ch.name) && 
+        ch.members.size > 0 
     );
 
     if (!availableChannels.size) {
@@ -49,15 +50,17 @@ async function playSoundRandom(guild) {
         console.log(`[Troll Job] Conectado a canal: ${channel.name} en ${guild.name}`);
 
         const player = createAudioPlayer();
-        // ⭐️⭐️ CAMBIO CLAVE: Cambiado a "sonido.ogg" ⭐️⭐️
-        const resource = createAudioResource("sonido.ogg"); 
+        
+        // ⭐️⭐️ MODIFICADO: Uso de la ruta absoluta ⭐️⭐️
+        const audioPath = path.join(__dirname, 'sonido.ogg'); 
+        const resource = createAudioResource(audioPath); 
 
         player.play(resource);
         connection.subscribe(player);
 
         player.on(AudioPlayerStatus.Idle, () => {
             console.log(`[Troll Job] Sonido terminado. Desconectando.`);
-            connection.destroy(); // Se desconecta al terminar
+            connection.destroy();
         });
     } catch (error) {
         console.error(`[Troll Job] Error al conectar o reproducir: ${error.message}`);
@@ -68,13 +71,11 @@ async function playSoundRandom(guild) {
 // EVENTO PARA ESCUCHAR COMANDOS DE TEXTO (AHORA GLOBAL)
 // ---------------------------------------------
 client.on('messageCreate', message => {
-    // Ignora mensajes de bots
     if (message.author.bot) return;
 
-    // Se ejecuta si es "!sonido" en CUALQUIER servidor
     if (message.content.toLowerCase() === '!sonido') {
         console.log(`--- Comando !sonido recibido en ${message.guild.name} ---`);
-        playSoundRandom(message.guild); // Le pasamos el objeto del servidor
+        playSoundRandom(message.guild);
     }
 });
 
@@ -83,14 +84,13 @@ client.once("ready", () => {
     console.log(`Bot listo como ${client.user.tag}`);
     
     // -----------------------------------------------------
-    // TAREA AUTOMÁTICA (CRON JOB) - PARA MÚLTIPLES SERVIDORES
+    // TAREA AUTOMÁTICA (CRON JOB) - CADA 10 MINUTOS
     // -----------------------------------------------------
     const job = new CronJob(
-        '*/10 * * * *', // ⭐️ Corregido a CADA 10 MINUTOS (asumiendo que ese era el objetivo final)
+        '*/1 * * * *', 
         () => {
             console.log('--- Iniciando Tarea Programada (10m) para MÚLTIPLES SERVIDORES ---');
             
-            // Itera sobre la lista de IDs de servidores y ejecuta la tarea en cada uno
             GUILD_IDS_TO_TROL.forEach(guildId => {
                 const guild = client.guilds.cache.get(guildId);
 
@@ -101,9 +101,9 @@ client.once("ready", () => {
                 }
             });
         },
-        null, // onComplete function
-        true, // start the job right now
-        'Europe/Madrid' // Zona horaria
+        null, 
+        true, 
+        'Europe/Madrid' 
     );
 
     job.start();
