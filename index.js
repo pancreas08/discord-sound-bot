@@ -88,3 +88,18 @@ client.once("ready", () => {
 });
 
 client.login(process.env.TOKEN);
+// --- CÓDIGO PARA EVITAR QUE RENDER APAGUE EL BOT ---
+// Esto abre un puerto para que Render crea que es un Web Service.
+
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000; // Render usa la variable PORT automáticamente
+
+app.get('/', (req, res) => {
+  res.send('Bot de sonido está activo. El servidor web es solo para mantener el bot en línea.');
+});
+
+app.listen(port, () => {
+  console.log(`Servidor Express escuchando en el puerto ${port}`);
+});
+// ----------------------------------------------------
