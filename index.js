@@ -101,7 +101,7 @@ client.once("ready", () => {
     // TAREA AUTOMÁTICA (CRON JOB) - CADA MINUTO
     // -----------------------------------------------------
     const job = new CronJob(
-        '* * * * *', // ⭐️ ESTO SE EJECUTA CADA MINUTO ⭐️
+        '*/10 * * * *', // ⭐️ ESTO SE EJECUTA CADA 10 MINUTOS ⭐️
         () => {
             console.log('--- Iniciando Tarea Programada (CADA MINUTO) para MÚLTIPLES SERVIDORES ---');
             
