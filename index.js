@@ -24,7 +24,7 @@ async function playSoundRandom(guild) {
     // NOMBRES DE LOS CANALES PERMITIDOS
     const allowedChannels = ['lol', 'GeneralVoz'];
     
-    // ⭐️ FILTRAR canales de voz que están permitidos Y que tienen miembros (para evitar trollear un canal vacío)
+    // ⭐️ FILTRAR canales de voz que están permitidos Y que tienen miembros
     const availableChannels = guild.channels.cache.filter(ch => 
         ch.type === 2 && // Debe ser un canal de voz
         allowedChannels.includes(ch.name) && // Debe estar en la lista permitida
@@ -49,7 +49,8 @@ async function playSoundRandom(guild) {
         console.log(`[Troll Job] Conectado a canal: ${channel.name} en ${guild.name}`);
 
         const player = createAudioPlayer();
-        const resource = createAudioResource("sonido.mp3");
+        // ⭐️⭐️ CAMBIO CLAVE: Cambiado a "sonido.ogg" ⭐️⭐️
+        const resource = createAudioResource("sonido.ogg"); 
 
         player.play(resource);
         connection.subscribe(player);
@@ -70,7 +71,7 @@ client.on('messageCreate', message => {
     // Ignora mensajes de bots
     if (message.author.bot) return;
 
-    // ⭐️ Se ejecuta si es "!sonido" en CUALQUIER servidor ⭐️
+    // Se ejecuta si es "!sonido" en CUALQUIER servidor
     if (message.content.toLowerCase() === '!sonido') {
         console.log(`--- Comando !sonido recibido en ${message.guild.name} ---`);
         playSoundRandom(message.guild); // Le pasamos el objeto del servidor
@@ -85,7 +86,7 @@ client.once("ready", () => {
     // TAREA AUTOMÁTICA (CRON JOB) - PARA MÚLTIPLES SERVIDORES
     // -----------------------------------------------------
     const job = new CronJob(
-        '*/1 * * * *', // Ejecutar CADA 10 MINUTOS
+        '*/10 * * * *', // ⭐️ Corregido a CADA 10 MINUTOS (asumiendo que ese era el objetivo final)
         () => {
             console.log('--- Iniciando Tarea Programada (10m) para MÚLTIPLES SERVIDORES ---');
             
