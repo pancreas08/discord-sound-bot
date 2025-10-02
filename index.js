@@ -2,7 +2,6 @@ const { Client, GatewayIntentBits } = require("discord.js");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
 const { CronJob } = require("cron");
 const express = require('express');
-const path = require('path'); // ⭐️ AGREGADO: Módulo para rutas absolutas
 
 // ⭐️ ID DEL SERVIDOR: Lista de IDs para el Cron Job y el comando global
 const GUILD_IDS_TO_TROL = ["461899811495477250", "939962120446017536"];
@@ -27,9 +26,9 @@ async function playSoundRandom(guild) {
     
     // ⭐️ FILTRAR canales de voz que están permitidos Y que tienen miembros
     const availableChannels = guild.channels.cache.filter(ch => 
-        ch.type === 2 && 
-        allowedChannels.includes(ch.name) && 
-        ch.members.size > 0 
+        ch.type === 2 && // Debe ser un canal de voz
+        allowedChannels.includes(ch.name) && // Debe estar en la lista permitida
+        ch.members.size > 0 // SOLO SI TIENE MIEMBROS CONECTADOS
     );
 
     if (!availableChannels.size) {
@@ -50,20 +49,33 @@ async function playSoundRandom(guild) {
         console.log(`[Troll Job] Conectado a canal: ${channel.name} en ${guild.name}`);
 
         const player = createAudioPlayer();
-        
-        // ⭐️⭐️ MODIFICADO: Uso de la ruta absoluta ⭐️⭐️
-        const audioPath = path.join(__dirname, 'sonido.ogg'); 
-        const resource = createAudioResource(audioPath); 
+        // ⭐️⭐️ REVERTIDO: Vuelve a "sonido.mp3" con la ruta simple ⭐️⭐️
+        const resource = createAudioResource("sonido.mp3"); 
+
+        // ⭐️ AÑADIR UN LISTENER DE ERROR DEL PLAYER ⭐️
+        player.on('error', (error) => {
+            console.error(`[Troll Job] Error del AudioPlayer (FALLO DE REPRODUCCIÓN): ${error.message}`);
+            connection.destroy(); 
+        });
 
         player.play(resource);
         connection.subscribe(player);
 
         player.on(AudioPlayerStatus.Idle, () => {
             console.log(`[Troll Job] Sonido terminado. Desconectando.`);
-            connection.destroy();
+            connection.destroy(); // Se desconecta al terminar
         });
     } catch (error) {
-        console.error(`[Troll Job] Error al conectar o reproducir: ${error.message}`);
+        // Manejo de errores críticos de conexión (como el fallo de IP discovery)
+        console.error(`[Troll Job] Error CRÍTICO de Conexión/IP: ${error.message}. Intentando desconexión forzada.`);
+        try {
+            const existingConnection = getVoiceConnection(guild.id);
+            if (existingConnection) {
+                existingConnection.destroy();
+            }
+        } catch (disconnectError) {
+            // Ignorar errores al intentar desconectar
+        }
     }
 }
 
@@ -71,11 +83,13 @@ async function playSoundRandom(guild) {
 // EVENTO PARA ESCUCHAR COMANDOS DE TEXTO (AHORA GLOBAL)
 // ---------------------------------------------
 client.on('messageCreate', message => {
+    // Ignora mensajes de bots
     if (message.author.bot) return;
 
+    // Se ejecuta si es "!sonido" en CUALQUIER servidor
     if (message.content.toLowerCase() === '!sonido') {
         console.log(`--- Comando !sonido recibido en ${message.guild.name} ---`);
-        playSoundRandom(message.guild);
+        playSoundRandom(message.guild); // Le pasamos el objeto del servidor
     }
 });
 
@@ -87,10 +101,11 @@ client.once("ready", () => {
     // TAREA AUTOMÁTICA (CRON JOB) - CADA 10 MINUTOS
     // -----------------------------------------------------
     const job = new CronJob(
-        '*/1 * * * *', 
+        '*/10 * * * *', // Ejecutar CADA 10 MINUTOS
         () => {
             console.log('--- Iniciando Tarea Programada (10m) para MÚLTIPLES SERVIDORES ---');
             
+            // Itera sobre la lista de IDs de servidores y ejecuta la tarea en cada uno
             GUILD_IDS_TO_TROL.forEach(guildId => {
                 const guild = client.guilds.cache.get(guildId);
 
@@ -101,9 +116,9 @@ client.once("ready", () => {
                 }
             });
         },
-        null, 
-        true, 
-        'Europe/Madrid' 
+        null, // onComplete function
+        true, // start the job right now
+        'Europe/Madrid' // Zona horaria
     );
 
     job.start();
