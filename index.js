@@ -77,7 +77,7 @@ client.once("ready", () => {
   // TAREA AUTOMÁTICA (CRON JOB)
   // -----------------------------------------------------
   const job = new CronJob(
-    '*/15 * * * *', // Ejecutar cada 15 minutos
+    '*/10 * * * * *', // ⭐️ CAMBIO CLAVE: Ejecutar CADA 10 SEGUNDOS
     () => {
       console.log('--- Iniciando Tarea Programada (15m) ---');
       const guild = client.guilds.cache.get(GUILD_ID_TO_TROL);
