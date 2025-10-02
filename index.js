@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, getVoiceConnection } = require("discord.js");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
 const { CronJob } = require("cron");
 const express = require('express');
@@ -49,10 +49,10 @@ async function playSoundRandom(guild) {
         console.log(`[Troll Job] Conectado a canal: ${channel.name} en ${guild.name}`);
 
         const player = createAudioPlayer();
-        // ⭐️⭐️ REVERTIDO: Vuelve a "sonido.mp3" con la ruta simple ⭐️⭐️
+        // ⭐️ Usamos "sonido.mp3" con la ruta relativa ⭐️
         const resource = createAudioResource("sonido.mp3"); 
 
-        // ⭐️ AÑADIR UN LISTENER DE ERROR DEL PLAYER ⭐️
+        // Listener para detectar fallos del AudioPlayer
         player.on('error', (error) => {
             console.error(`[Troll Job] Error del AudioPlayer (FALLO DE REPRODUCCIÓN): ${error.message}`);
             connection.destroy(); 
@@ -66,8 +66,9 @@ async function playSoundRandom(guild) {
             connection.destroy(); // Se desconecta al terminar
         });
     } catch (error) {
-        // Manejo de errores críticos de conexión (como el fallo de IP discovery)
-        console.error(`[Troll Job] Error CRÍTICO de Conexión/IP: ${error.message}. Intentando desconexión forzada.`);
+        // Manejo de errores críticos de conexión
+        console.error(`[Troll Job] Error CRÍTICO de Conexión: ${error.message}.`);
+        // Intentar desconectar si hay una conexión parcial para limpiar el estado.
         try {
             const existingConnection = getVoiceConnection(guild.id);
             if (existingConnection) {
@@ -80,7 +81,7 @@ async function playSoundRandom(guild) {
 }
 
 // ---------------------------------------------
-// EVENTO PARA ESCUCHAR COMANDOS DE TEXTO (AHORA GLOBAL)
+// EVENTO PARA ESCUCHAR COMANDOS DE TEXTO
 // ---------------------------------------------
 client.on('messageCreate', message => {
     // Ignora mensajes de bots
@@ -105,14 +106,14 @@ client.once("ready", () => {
         () => {
             console.log('--- Iniciando Tarea Programada (10m) para MÚLTIPLES SERVIDORES ---');
             
-            // Itera sobre la lista de IDs de servidores y ejecuta la tarea en cada uno
+            // Itera sobre la lista de IDs de servidores
             GUILD_IDS_TO_TROL.forEach(guildId => {
                 const guild = client.guilds.cache.get(guildId);
 
                 if (guild) {
                     playSoundRandom(guild);
                 } else {
-                    console.log(`Error: Servidor con ID ${guildId} no encontrado (El bot no está en él).`);
+                    console.log(`Error: Servidor con ID ${guildId} no encontrado.`);
                 }
             });
         },
@@ -127,11 +128,13 @@ client.once("ready", () => {
 
 client.login(process.env.TOKEN);
 
-// --- CÓDIGO PARA EVITAR QUE RENDER APAGUE EL BOT (EXPRESS SERVER) ---
+// --- CÓDIGO CRUCIAL PARA REPLIT: EXPRESS SERVER ---
+// Esto mantiene el bot "despierto" 24/7 cuando UptimeRobot lo visita.
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000; // Usamos el puerto 3000 estándar para Replit/Node
 
 app.get('/', (req, res) => {
+    // Respuesta para UptimeRobot
     res.send('Bot de sonido está activo y escuchando comandos.');
 });
 
