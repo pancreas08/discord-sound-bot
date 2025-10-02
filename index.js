@@ -14,43 +14,51 @@ const client = new Client({
   ] 
 });
 
-// Función que entra y reproduce el sonido
+// Función que entra y reproduce el sonido (MODIFICADA)
 async function playSoundRandom(guild) {
-  if (!guild) {
-    console.log("Error: Gremio (Guild) no disponible.");
-    return;
-  }
+    if (!guild) {
+        console.log("Error: Gremio (Guild) no disponible.");
+        return;
+    }
 
-  const channels = guild.channels.cache.filter(ch => ch.type === 2); // 2 = Voice Channel
-  if (!channels.size) {
-    console.log(`[Troll Job] No se encontraron canales de voz en el servidor: ${guild.name}`);
-    return;
-  }
-
-  const channel = channels.random(); // Elige un canal de voz aleatorio
-
-  try {
-    const connection = joinVoiceChannel({
-      channelId: channel.id,
-      guildId: guild.id,
-      adapterCreator: guild.voiceAdapterCreator,
-    });
+    // ⭐️ NOMBRES DE LOS CANALES PERMITIDOS ⭐️
+    const allowedChannels = ['lol', 'GeneralVoz'];
     
-    console.log(`[Troll Job] Conectado a canal: ${channel.name} en ${guild.name}`);
+    // Filtrar canales de voz por tipo (2) Y por nombre
+    const filteredChannels = guild.channels.cache.filter(ch => 
+        ch.type === 2 && allowedChannels.includes(ch.name) // 2 = Voice Channel
+    );
 
-    const player = createAudioPlayer();
-    const resource = createAudioResource("sonido.mp3");
+    if (!filteredChannels.size) {
+        console.log(`[Troll Job] No se encontraron canales de voz permitidos (${allowedChannels.join(', ')}) en ${guild.name}.`);
+        return;
+    }
 
-    player.play(resource);
-    connection.subscribe(player);
+    // Elegir un canal aleatorio solo de la lista filtrada
+    const channel = filteredChannels.random();
 
-    player.on(AudioPlayerStatus.Idle, () => {
-      console.log(`[Troll Job] Sonido terminado. Desconectando.`);
-      connection.destroy(); // Se desconecta al terminar
-    });
-  } catch (error) {
-    console.error(`[Troll Job] Error al conectar o reproducir: ${error.message}`);
-  }
+    try {
+        const connection = joinVoiceChannel({
+            channelId: channel.id,
+            guildId: guild.id,
+            adapterCreator: guild.voiceAdapterCreator,
+        });
+        
+        console.log(`[Troll Job] Conectado a canal: ${channel.name} en ${guild.name}`);
+
+        const player = createAudioPlayer();
+        const resource = createAudioResource("sonido.mp3");
+
+        player.play(resource);
+        connection.subscribe(player);
+
+        player.on(AudioPlayerStatus.Idle, () => {
+            console.log(`[Troll Job] Sonido terminado. Desconectando.`);
+            connection.destroy(); // Se desconecta al terminar
+        });
+    } catch (error) {
+        console.error(`[Troll Job] Error al conectar o reproducir: ${error.message}`);
+    }
 }
 
 // ---------------------------------------------
@@ -77,9 +85,9 @@ client.once("ready", () => {
   // TAREA AUTOMÁTICA (CRON JOB)
   // -----------------------------------------------------
   const job = new CronJob(
-    '*/10 * * * * *', // ⭐️ CAMBIO CLAVE: Ejecutar CADA 10 SEGUNDOS
+    '* * * * *', // ⭐️ Ejecutar CADA MINUTO (a los 0 segundos de cada minuto)
     () => {
-      console.log('--- Iniciando Tarea Programada (15m) ---');
+      console.log('--- Iniciando Tarea Programada (1m) ---');
       const guild = client.guilds.cache.get(GUILD_ID_TO_TROL);
       if (guild) {
         playSoundRandom(guild);
