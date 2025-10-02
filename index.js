@@ -1,15 +1,21 @@
 const { Client, GatewayIntentBits } = require("discord.js");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
-const { CronJob } = require("cron"); // <-- NUEVO: Importamos CronJob
+const { CronJob } = require("cron");
+const express = require('express'); // ⭐️ NECESARIO para el servidor web de Render
 
-// Tu token está en Render, así que usamos process.env.TOKEN
+// ID DEL SERVIDOR ÚNICO
+const GUILD_ID_TO_TROL = "461899811495477250"; 
+
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.MessageContent] 
+  intents: [
+    GatewayIntentBits.Guilds, 
+    GatewayIntentBits.GuildVoiceStates, 
+    GatewayIntentBits.MessageContent // ⭐️ NECESARIO para leer mensajes de texto
+  ] 
 });
 
-// Función que entra y reproduce el sonido (la misma que tenías)
+// Función que entra y reproduce el sonido
 async function playSoundRandom(guild) {
-  // Solo se ejecuta si el bot está conectado a un servidor
   if (!guild) {
     console.log("Error: Gremio (Guild) no disponible.");
     return;
@@ -17,11 +23,11 @@ async function playSoundRandom(guild) {
 
   const channels = guild.channels.cache.filter(ch => ch.type === 2); // 2 = Voice Channel
   if (!channels.size) {
-    console.log("No se encontraron canales de voz.");
+    console.log(`[Troll Job] No se encontraron canales de voz en el servidor: ${guild.name}`);
     return;
   }
 
-  const channel = channels.random(); // Elige un canal aleatorio
+  const channel = channels.random(); // Elige un canal de voz aleatorio
 
   try {
     const connection = joinVoiceChannel({
@@ -33,7 +39,7 @@ async function playSoundRandom(guild) {
     console.log(`[Troll Job] Conectado a canal: ${channel.name} en ${guild.name}`);
 
     const player = createAudioPlayer();
-    const resource = createAudioResource("sonido.mp3"); // TU ARCHIVO
+    const resource = createAudioResource("sonido.mp3");
 
     player.play(resource);
     connection.subscribe(player);
@@ -47,26 +53,29 @@ async function playSoundRandom(guild) {
   }
 }
 
+// ---------------------------------------------
+// ⭐️ EVENTO PARA ESCUCHAR COMANDOS DE TEXTO
+// ---------------------------------------------
+client.on('messageCreate', message => {
+  // Ignora mensajes de bots (incluyéndote a ti mismo)
+  if (message.author.bot) return;
+
+  // Verifica si el mensaje es el comando "!sonido" y es del servidor correcto
+  if (message.content.toLowerCase() === '!sonido' && message.guild.id === GUILD_ID_TO_TROL) {
+    console.log(`--- Comando !sonido recibido en ${message.guild.name} ---`);
+    playSoundRandom(message.guild);
+    // Opcional: Puedes enviar un mensaje de confirmación al canal de texto
+    // message.reply('¡Ejecutando sonido ahora!');
+  }
+});
+
+
 client.once("ready", () => {
   console.log(`Bot listo como ${client.user.tag}`);
   
   // -----------------------------------------------------
-  // ⭐️ TAREA AUTOMÁTICA (CRON JOB)
+  // TAREA AUTOMÁTICA (CRON JOB)
   // -----------------------------------------------------
-  // SINTAXIS CRON: * * * * *
-  //                 | | | | |
-  //                 | | | | DÍA DE LA SEMANA (0-7)
-  //                 | | | MES (1-12)
-  //                 | | DÍA DEL MES (1-31)
-  //                 | HORA (0-23)
-  //                 MINUTO (0-59)
-  //
-  // '*/15 * * * *' = Cada 15 minutos
-  
-  // IMPORTANTE: Debes cambiar 'TU_ID_DE_SERVIDOR' por el ID del servidor donde está el bot.
-  // CLIC DERECHO EN EL NOMBRE DEL SERVIDOR -> Copiar ID.
-  const GUILD_ID_TO_TROL = "461899811495477250"; 
-
   const job = new CronJob(
     '*/15 * * * *', // Ejecutar cada 15 minutos
     () => {
@@ -80,7 +89,7 @@ client.once("ready", () => {
     },
     null, // onComplete function
     true, // start the job right now
-    'Europe/Madrid' // Zona horaria: ¡Asegúrate de que sea tu zona horaria para que sea exacto!
+    'Europe/Madrid' // Zona horaria
   );
 
   job.start();
@@ -88,15 +97,13 @@ client.once("ready", () => {
 });
 
 client.login(process.env.TOKEN);
-// --- CÓDIGO PARA EVITAR QUE RENDER APAGUE EL BOT ---
-// Esto abre un puerto para que Render crea que es un Web Service.
 
-const express = require('express');
+// --- CÓDIGO PARA EVITAR QUE RENDER APAGUE EL BOT (EXPRESS SERVER) ---
 const app = express();
-const port = process.env.PORT || 3000; // Render usa la variable PORT automáticamente
+const port = process.env.PORT || 3000; 
 
 app.get('/', (req, res) => {
-  res.send('Bot de sonido está activo. El servidor web es solo para mantener el bot en línea.');
+  res.send('Bot de sonido está activo y escuchando comandos.');
 });
 
 app.listen(port, () => {
